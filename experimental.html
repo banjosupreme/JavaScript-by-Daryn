@@ -1,0 +1,243 @@
+
+<html>
+
+<body>
+The space bar might be helpful in some situations
+<script src="threejs/build/three.min.js"></script>
+<script src="keyboardState.js"></script>
+<script>
+	var ourHero, camera, scene, renderer;
+	var move;
+	var colors = ["red","orange", "yellow", "green", "blue"];
+	var bounce = [0,0,0,0];
+	var bounceDelta=.01;
+	var deadHero=false;
+	var level=0;
+	var rockCount=0;	
+	var input = new KeyboardState();
+	var clock = new THREE.Clock();
+	var omegas = [Math.random()*7 + 1, Math.random()*7 + 1, Math.random()*7 + 1, Math.random()*7+1 ];
+	var heights = [Math.random()*400 + 50, Math.random()*400 + 50, Math.random()*400 + 50, Math.random()*400 + 50];
+	var speeds = [Math.random()*6+8,Math.random()*6+8,Math.random()*6+8,Math.random()*6+8];
+ 	var rocks = new Array();	
+ 	
+    init();
+    animate();
+
+
+
+    function init() {
+        
+        scene = new THREE.Scene();
+	    ourHero = makeHero();
+	    scene.add(ourHero);	
+
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+        camera.position.z = 1000;
+	    camera.position.y = 500;
+	    camera.target = new THREE.Vector3(0,0,0);
+
+	    var floor = makeFloor();
+	    scene.add(floor);
+        
+	   
+        for(var i=0;i<4;i++)
+	    {
+		    rocks.push(reverseBall(Math.random()*100 + 100, -650 + i*375 + Math.random()*20-10 ,0, -2000));
+	    }
+
+	    var outtacontrol = new THREE.Object3D();
+
+	    for (var i=0;i<rocks.length;i++)
+	    {
+		    outtacontrol.add(rocks[i]);
+	    }
+		
+	    scene.add(outtacontrol);
+	    renderer = new THREE.CanvasRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        document.body.appendChild( renderer.domElement );
+
+    }
+
+    function animate() {
+
+        requestAnimationFrame( animate );
+	    input.update();
+	
+	    move=500*clock.getDelta();
+	    if(deadHero===false)
+	    {
+		    for(var j=0;j<rocks.length;j++)
+		    {
+			    if (collision(ourHero,rocks[j])){
+				    scene.remove(ourHero);
+				    deadHero=true;
+			    	break;
+			    }
+		    }
+	    }
+	
+	    else if(deadHero===true)
+	    {
+		    if(input.pressed("space"))
+		    {	
+			    rockCount=0;
+			    level=0;
+			    ourHero=makeHero();
+			    scene.add(ourHero);
+			    deadHero=false;
+		    }
+	    }	
+	    if(ourHero.position.x<-629)
+	    {
+		    ourHero.position.x=629;
+		    ourHero.translateX(-2*move);
+	    }
+	    else if(ourHero.position.x>629)
+	    {
+		    ourHero.position.x=-629;
+		    ourHero.translateX(2*move);
+	    }
+	    else if (input.pressed("left")){
+		    ourHero.translateX(-move);
+	    }
+	    else if (input.pressed("right")){
+		    ourHero.translateX(move);
+	    }
+	    for(var i=0;i<rocks.length;i++)
+	    {
+		    if(rocks[i].position.z<1150)
+		    {
+			    rocks[i].rotation.x+= 0.02;
+			    rocks[i].position.z+=speeds[i];
+       			bounce[i]+=bounceDelta;
+        		rocks[i].position.y=Math.abs(Math.sin(omegas[i]*bounce[i]))*heights[i]+rocks[i].radius;
+		    }
+	    	else
+		    {
+			    rockCount+=1;
+			    if(rockCount===15)
+			    {
+				    level+=1;
+				    rockCount=0;
+			    }
+			    scene.remove(rocks[i]);
+			    rocks[i]= reverseBall(Math.random()*100 + 110 ,-610 + i*375 + Math.random()*20-10 ,0, -1200 + (Math.random()-0.5)*400);
+			    scene.add(rocks[i]);
+			    speeds[i]=Math.random()*25+10+level;
+			    omegas[i]=Math.random()*7+1;
+			    heights[i]=Math.random()*420;
+       			bounce[i]=0;
+		 
+		    }
+			
+	    }
+        camera.lookAt(camera.target);
+    	renderer.render( scene, camera );
+
+    }
+	
+
+
+    function makeHero(){
+		return banjoBall(60,0,0,525);
+	}
+	
+
+	function floorBlock(cubex, cubey, cubez, xpos, ypos, zpos) {
+
+		var cubeGeometry, cubeMaterial;
+		
+		cubeMaterial = new THREE.MeshBasicMaterial( { color: 0x88B368} ) ;
+		cubeGeometry = new THREE.CubeGeometry(cubex, cubey, cubez);
+		var outBlock = new THREE.Mesh( cubeGeometry, cubeMaterial );
+			
+		outBlock.position.x=xpos;
+		outBlock.position.y=ypos;
+		outBlock.position.z=zpos;
+
+		return outBlock;
+
+	}
+
+	
+	function banjoBallDriver(radius,flag,xpos,ypos,zpos){
+		
+		xpos = typeof xpos !== 'undefined' ? xpos : 0;
+   		ypos = typeof ypos !== 'undefined' ? ypos : 0;
+		zpos = typeof zpos !== 'undefined' ? zpos : 0;
+		
+		var outBall = new THREE.Object3D();
+		var layerMaterial, layerGeometry;
+		var index;
+
+		for(var i=0;i<colors.length;i++)
+		{
+			if (flag>0){
+				index=i;
+			}
+			else{
+				index=colors.length-i-1;
+			}
+			layerMaterial = new THREE.MeshBasicMaterial({color: colors[index], wireframe: true});
+			layerGeometry = new THREE.IcosahedronGeometry(((i+1)/colors.length)*radius,1,16);
+			outBall.add(new THREE.Mesh(layerGeometry, layerMaterial));		
+		}
+		outBall.radius=radius;	
+		outBall.position.x=xpos;
+		outBall.position.y=ypos+radius;
+		outBall.position.z=zpos;
+		outBall.castShadow=true;
+		return outBall;
+	}
+	
+	function banjoBall(radius, xpos, ypos, zpos){
+		return banjoBallDriver(radius,1,xpos,ypos,zpos);
+	}
+
+	function reverseBall(radius, xpos, ypos, zpos){
+	 	return banjoBallDriver(radius,-1,xpos,ypos,zpos);	
+	}	
+
+	function makeFloor(){
+
+		var floor = new THREE.Object3D();
+		var z=-2000;
+		var mult=1; 
+		var count=0;
+		for(var i=0;i<20;i++){
+			floor.add(floorBlock(698,20,180,-350*mult,-10,z));
+			floor.add(floorBlock(698,20,180,350*mult,-10,z));
+			mult*=-1;
+
+			z+=190;
+		}
+
+		return floor;
+	}
+
+	function distance(object1, object2){
+		//Good old Pythagoras
+		var xdiff=object1.position.x - object2.position.x;
+		var ydiff=object1.position.y - object2.position.y;
+		var zdiff=object1.position.z - object2.position.z;
+
+		return (Math.sqrt(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff)); 
+	}
+
+	function collision(ball1, ball2){
+		if (distance(ball1,ball2)<ball1.radius+ball2.radius){
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+
+
+</script>
+</body>
+
+</html>
