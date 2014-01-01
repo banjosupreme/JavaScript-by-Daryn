@@ -1,0 +1,201 @@
+
+<html>
+
+<body>
+Up: move forward<br>
+Left and Right: Turn<br> 
+Z and X: Zoom in and out<br> 
+Q and A: Change camera angle with the vertical<br>
+O and P: rotate the camera around protagonist<p>
+
+Other objects inserted for use as landmarks and don't impede progress.<br>
+I need to put some constraints on the vertical rotation of the camera.<br>
+You don't have to stay on the green. But it would be nice.<br>
+<script src="three.min.js"></script>
+<script src="keyboardState.js"></script>
+<script src="controls.js"></script>
+<script>
+	var camera, scene, renderer;
+	var ourHero, floor, light1, light2;
+	var move, minDist=200, maxDist=2000;
+	var input = new KeyboardState();
+	var clock = new THREE.Clock();
+	var colors = ["red","orange","yellow","green","blue"];
+	var yAxis = new THREE.Vector3(0,1,0);
+	var oldCamX, oldCamZ;
+	var rotObjectMatrix;
+
+ 	init();
+    animate();
+
+    function init() {
+
+        scene = new THREE.Scene();
+        
+        ourHero = makeHero();
+	    scene.add(ourHero);	
+
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+        camera.position.z = 1000;
+	    camera.position.y = 800;
+	    camera.lookAt(ourHero.position);
+
+	
+	    floor = makeFloor();
+	    scene.add(floor);
+	
+
+	    light1 = new THREE.DirectionalLight( 0xffffff, 2 );
+	    light1.position.set( 1, 1, 1 ).normalize();
+	    light1.castShadow = true;
+	    scene.add( light1 );
+
+	    light2 = new THREE.DirectionalLight( 0xffffff );
+	    light2.position.set( -1, -1, -1 ).normalize();
+	    light2.castShadow = true;
+	    scene.add( light2 );
+
+
+
+        renderer = new THREE.CanvasRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+        document.body.appendChild( renderer.domElement );
+
+    }
+		  
+    function animate() {
+
+        requestAnimationFrame( animate );
+	    input.update();
+	    var delta=clock.getDelta()
+	    move=500*delta;
+
+	
+	    if (input.pressed("left")){
+		    rotateAroundObjectAxis(camera, ourHero, yAxis, delta*2);
+	    }
+	    else if (input.pressed("right")){
+		    rotateAroundObjectAxis(camera, ourHero, yAxis, -delta*2);
+	    }
+	    else if (input.pressed("up")){
+		    moveTargetForward(camera, ourHero, -move);
+	    }
+	    else if (input.pressed("A")){
+		    changeCameraVertAngle(camera, ourHero, delta);
+	    }
+	    else if (input.pressed("Q")){
+		    changeCameraVertAngle(camera, ourHero, -delta);	
+	    }
+	    else if (input.pressed("O")){
+		    swingCamera(camera, ourHero, -delta);
+	    }
+	    else if (input.pressed("P")){
+		    swingCamera(camera, ourHero, delta);	
+	    }
+	    if (input.pressed("Z")){
+		    zoomIn(camera, ourHero, move, minDist);
+	    }	
+	    if (input.pressed("X")){
+		    zoomOut(camera, ourHero, move, maxDist);
+	    }
+	    
+        camera.lookAt(ourHero.position);	
+        
+	    renderer.render( scene, camera );
+
+    }
+	
+
+    function makeHero(){
+		
+		var hero = new THREE.Object3D();	
+		var heroGeometry = new THREE.CubeGeometry(120,240,120);
+		var heroMaterial = new THREE.MeshLambertMaterial({color:"yellow"});
+		var body = new THREE.Mesh(heroGeometry,heroMaterial);
+		body.position.y = 121;
+		hero.add(body);
+
+
+		var leftArm = new THREE.Object3D();
+		heroGeometry = new THREE.CylinderGeometry(50,50,90,32);
+		heroMaterial = new THREE.MeshBasicMaterial({color:"blue"});
+		leftArm.add(new THREE.Mesh(heroGeometry,heroMaterial));
+		leftArm.rotation.z = Math.PI/2;
+		leftArm.position.x = -132;
+		leftArm.position.y=120;
+		hero.add(leftArm); 
+
+		var rightArm = new THREE.Object3D();
+		heroMaterial = new THREE.MeshBasicMaterial({color:"red"});
+		rightArm.add(new THREE.Mesh(heroGeometry,heroMaterial));
+		rightArm.rotation.z = Math.PI/2;
+		rightArm.position.x = 132;
+		rightArm.position.y=120;
+		hero.add(rightArm);
+
+		var pointer = new THREE.Object3D();
+		heroGeometry = new THREE.CylinderGeometry(0,50,90,32);
+		heroMaterial = new THREE.MeshBasicMaterial({color:"orange"});
+		pointer.add(new THREE.Mesh(heroGeometry, heroMaterial));
+		pointer.rotation.x = -Math.PI/2;
+		pointer.position.z = -110;
+		pointer.position.y = 150;
+		hero.add(pointer);
+		 
+		return hero;
+		
+	}
+
+	function makeFloor(){
+		
+	//One day I will draw a car. And a future version of this function will make the chassis.
+
+		var floor = new THREE.Object3D();
+		var i,j,colorIndex;
+		var pillarGeometry = new THREE.CubeGeometry(35,100,35);
+		for(i=0;i<17;i++){
+			for(j=0;j<17;j++){
+				if(Math.random()<0.05)
+				{
+					var pillar = new THREE.Mesh(pillarGeometry, new THREE.MeshPhongMaterial( { color: Math.random() * 0xffffff, opacity: 1 } ) );
+					pillar.position.x = -2416 + i*302;
+					pillar.position.y = 50;
+					pillar.position.z = -2416 + j*302;
+					pillar.castShadow = true;
+					floor.add(pillar);
+				}
+				floor.add(floorBlock(300,20,300,-2416 + i*302,-10, -2416 + j*302));
+			}
+			
+		}
+
+		return floor;
+	}
+	
+	function floorBlock(cubex, cubey, cubez, xpos, ypos, zpos, tileColor) {
+
+		tileColor = typeof tileColor !== 'undefined' ? tileColor : 0x88B368;
+
+		var cubeGeometry, cubeMaterial;
+		var showFrame = true;
+		
+		cubeMaterial = new THREE.MeshBasicMaterial( { color: tileColor} ) ;
+
+		cubeGeometry = new THREE.CubeGeometry(cubex, cubey, cubez);
+
+		var outBlock = new THREE.Mesh( cubeGeometry, cubeMaterial );
+			
+		outBlock.position.x=xpos;
+		outBlock.position.y=ypos;
+		outBlock.position.z=zpos;
+
+		return outBlock;
+
+	}
+
+
+</script>
+</body>
+
+</html>
