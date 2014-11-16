@@ -13,6 +13,8 @@ c. walkaround.html: developed in tandem with controls.js to test the functions i
 
 html files can be found on the web at www.darynr.com/experimental.html and www.darynr.com/walkaround.html
 
+d. weekend.js: A tetris game that I wrote. You can the game in the wild at www.darynr.com/weekend.htm
+
 2: Things written by others
 
 a. three.min.js: a minified version of the three.js library written by mrdoob
