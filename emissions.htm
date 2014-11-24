@@ -1,0 +1,804 @@
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Visualizing Greenhouse Gas Emissions Historically</title>
+    <link href='http://fonts.googleapis.com/css?family=Arvo' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="thecssfile.css">
+    <script type = "text/javascript" src ="d3/d3.js"></script>
+    <script type="text/javascript" src="emissions.data.js"></script>
+
+</head>
+<body>
+    <script type = "text/javascript">
+
+    var CO230=["China","UnitedStatesofAmerica","India","RussianFederation","Japan","Germany","KoreaSouth","Iran","Canada","SaudiArabia","Mexico","UnitedKingdom","Indonesia","Brazil","Italy","Australia","SouthAfrica","France","Turkey","Poland","Ukraine","Spain","Thailand","Kazakhstan","Egypt","Malaysia","Argentina","Venezuela","UnitedArabEmirates","Netherlands"];
+    var Total30=["China","UnitedStatesofAmerica","India","RussianFederation","Indonesia","Brazil","Japan","Canada","Germany","Mexico","Iran","KoreaSouth","Australia","UnitedKingdom","SaudiArabia","Nigeria","France","Italy","SouthAfrica","Malaysia","Argentina","Venezuela","Turkey","Ukraine","Thailand","Spain","Pakistan","Poland","DemRepofCongo","Kazakhstan"];
+    var CH430=["China","UnitedStatesofAmerica","RussianFederation","India","Brazil","Indonesia","Nigeria","Mexico","Angola","Australia","Canada","Pakistan","Iraq","Kuwait","Uzbekistan","Argentina","Sudan","Iran","Myanmar","Vietnam","Libya","Thailand","Ukraine","Ethiopia","Malaysia","France","Venezuela","DemRepofCongo","Colombia","Turkey"];
+    var N2030=["China","UnitedStatesofAmerica","Brazil","Indonesia","RussianFederation","DemRepofCongo","India","Argentina","France","Cameroon","Angola","Myanmar","CentralAfricanRepublic","Germany","Sudan","Canada","Pakistan","Ethiopia","Zambia","Iran","Colombia","UnitedKingdom","Burundi","Madagascar","Australia","Nigeria","Italy","Ukraine","Spain","Tanzania"];
+    var FGas30=["UnitedStatesofAmerica","China","Japan","India","RussianFederation","KoreaSouth","Mexico","Germany","Canada","France","Italy","SouthAfrica","UnitedKingdom","Australia","Brazil","Israel","Venezuela","Spain","Malaysia","Thailand","SaudiArabia","Philippines","Argentina","Algeria","Poland","Netherlands","Iran","Egypt","Singapore","Turkey"];
+    
+    var CH430xo=["China","UnitedStatesofAmerica","RussianFederation","India","Brazil","Indonesia","Nigeria","Mexico","Angola","Australia","Canada","Pakistan","Iraq","Uzbekistan","Argentina","Sudan","Iran","Myanmar","Vietnam","Thailand","Ukraine","Ethiopia","Malaysia","France","Venezuela","DemRepofCongo","Colombia","Turkey"];
+    var N2030xo=["China","UnitedStatesofAmerica","Brazil","Indonesia","RussianFederation","DemRepofCongo","India","Argentina","France","Cameroon","Angola","Myanmar","Germany","Sudan","Canada","Pakistan","Ethiopia","Zambia","Iran","Colombia","UnitedKingdom","Burundi","Madagascar","Australia","Nigeria","Italy","Ukraine","Spain","Tanzania"];
+     
+    var totalhigh10 = ["Kuwait", "Brunei", "Belize", "Qatar", "EquatorialGuinea", "Oman", "TrinidadTobago", "Australia", "Canada", "UnitedArabEmirates"]; 
+    var CO2high10 = ["Qatar", "TrinidadTobago", "Kuwait", "Brunei", "Oman", "Luxembourg", "UnitedArabEmirates","Australia","Bahrain","SaudiArabia"];
+    var CH4high10 = ["Kuwait", "Brunei", "Belize", "EquatorialGuinea", "Grenada", "Libya", "Oman", "Turkmenistan", "Barbados", "CentralAfricanRepublic"];
+    var N2Ohigh10 = ["CentralAfricanRepublic", "Burundi", "Angola", "Cameroon", "Zambia", "Brunei", "NewZealand", "Uruguay", "Mongolia", "Bolivia"];
+    var FGashigh10 = ["AntiguaBarbuda", "Israel", "Montenegro", "Kuwait", "Malta", "UnitedStatesofAmerica", "KoreaSouth", "Singapore","Australia","Japan"];
+       
+    var colours = {UnitedStatesofAmerica: "#1f77b4", China: "#ff7f0e", Japan: "#0033FF", Germany: "#9933CC", France: "#A27AFE", UnitedKingdom: "#8c564b",Brazil: "#e377c2",RussianFederation: "#CC6666",Italy: "#bcbd22",
+                    India: "#17becf",Canada: "#9467bd" ,Australia: "#7f7f7f" ,Spain: "#FF99FF", Mexico: "#99CCFF", KoreaSouth: "#663366", Indonesia: "#993300", Turkey: "#999900", Netherlands: "#FF8C00", SaudiArabia: "#556B2F",
+                    Switzerland: "#008B8B", Iran: "#d62728", Sweden: "#FFFF00", Algeria: "#000066", Poland: "#CC3333", Belgium: "#00CC00", Argentina: "#2ca02c", Austria: "#660000", Thailand: "#6600FF" , SouthAfrica: "#FFCC66", 
+                    UnitedArabEmirates: "#B9264F", Angola: "#FFE920", Burundi: "#FF800D", Cameroon: "#D1A0A0", CentralAfricanRepublic: "#93EEAA", Colombia: "#FF4AFF", DemRepofCongo: "#B6BA18", Egypt: "#FF4848", Ethiopia: "#E469FE",
+                    Iran: "#FF73B9", Iraq: "#FFE920", Israel: "#FFBD82", Kazakhstan:"#F70000", Kuwait: "#FFC4FF", Libya: "#27DE55", Madagascar: "#BABA21", Myanmar: "#93BF96", Nigeria: "#DB00DB", Pakistan: "#75ECFD", Philippines: "#FF9797",
+                    Singapore: "#D97BFD", Sudan: "#9A03FE", Tanzania: "#FF9C42", Ukraine: "#C27E3A", Uzbekistan: "#C48484", Venezuela: "#FFD34F", Vietnam: "#79FC4E", Zambia: "#F900F9", Malaysia: "#DAAF85",
+                    Brunei: "#FFF06A", Belize: "#29AFD6" ,Qatar: "#FF8A8A", EquatorialGuinea: "#B05F3C", Oman: "#DFDF00",TrinidadTobago: "#F70000",Luxembourg: "#E469FE", Bahrain: "#48FB0D", Grenada: "#FFB60B",
+                    Turkmenistan: "#FF2DFF",Barbados: "#5757FF", NewZealand: "#C8B400", Uruguay: "#23819C",Mongolia: "#FF68DD", Bolivia: "#FF9331", Malta: "#FF5353", Montenegro: "#3DE4FC", AntiguaBarbuda: "#5EAE9E" } ;
+                    
+    var plotw = 0.95*window.innerWidth;
+    var ploth = 0.5*window.innerHeight;
+    var slack = 0.2*window.innerHeight;
+    var svgh = 0.6*window.innerHeight;
+    
+    var CO2base = 1960;
+    var totalbase = 1990;
+    var CH4base = 1990;
+    var N2Obase = 1990;
+    var FGasbase = 1990;
+    var animTime = 1250;
+    
+    
+    var CO2end = 2012;
+    var totalend = 2012;
+    var CH4end = 2012;
+    var N2Oend = 2012;
+    var FGasend = 2012;
+
+    var cPop = function(yearData)
+    {
+        var outArray = new Array(yearData.length + 1);
+        sum = 0;
+    
+        for(var j = 0; j < yearData.length; j++)
+        {
+            outArray[j] = sum;
+            sum += yearData[j].population; 
+        }   
+        outArray[outArray.length-1] = sum; 
+        
+        return outArray;
+    }
+    
+    var dataPoint = function(key, year, lookup, orig, equiv)
+    {
+        var retVal = {};
+        retVal.id = key;
+        retVal.rect = orig[key];
+        retVal.usage = lookup[key].data[year - lookup[key].base][0];
+        retVal.perCap = lookup[key].data[year - lookup[key].base][1];
+        retVal.population = Population[key].data[year - Population[key].base];
+        retVal.info =   lookup[key].name+", "+year+"\nPopulation: "+pString[key].data[year - pString[key].base]+"\nTotal Emissions: "+retVal.usage+" MtCO2" + equiv+ "\nPer Person: "+retVal.perCap+" Tons\n"; 
+        
+        return retVal;
+
+    }
+    
+    var createZeroData = function(key, orig)
+    {
+        var retVal = {};
+        retVal.id = key;
+        retVal.rect = orig[key];
+        retVal.usage = 0;
+        retVal.perCap = 0;
+        retVal.population = 0;
+        retVal.info =  "";
+        
+        return retVal;
+    
+    }
+        
+    
+    var cmp1 = function(x, y)
+    {
+        return x.usage - y.usage;    
+    }
+    var cmp2 = function(x, y)
+    {
+        return x.perCap - y.perCap;
+    }
+    var cmp3 = function(x, y)
+    {
+        return x.population - y.population;
+    }
+     
+    var insert = function(dataPoint, mode, data)
+    {
+        if (mode == 0)
+        {
+            cmp = cmp1;
+        }
+        else if (mode == 1)
+        {
+            cmp = cmp2;
+        }
+        else if (mode == 2)
+        {
+            cmp = cmp3;
+        }
+
+        for(var j = 0; j < data.length; j++)
+        {
+            if(cmp(dataPoint,data[j])> 0)
+                break;
+        
+        }
+
+        data.splice(j,0,dataPoint);
+            
+    } 
+    
+    var setUpAnimation = function(countries,dataSource,base,stop,equiv, mode)
+     {
+        dataset = {};
+        dataset.data = new Array();
+        dataset.cPops = new Array();
+        dataset.base = base;        
+        var maxPop = -1;
+        var maxperCap = -1;        
+        orig = {};
+        for(var l = 0; l < countries.length; l++)
+        {
+            orig[countries[l]]=l;        
+        }
+        
+        for(var year = dataset.base; year < stop; year++)
+        {
+            var yearData = new Array();
+            
+            
+            for(var l = 0; l < countries.length; l++)
+            {
+                var dp;
+                if (year < dataSource[countries[l]].base)
+                {
+                    dp = createZeroData(countries[l], orig);
+                }
+                else
+                {
+                    dp = dataPoint(countries[l], year, dataSource, orig,equiv);
+                    if (dp.perCap > maxperCap)
+                    {
+                        maxperCap = dp.perCap;
+                    }
+                }
+                insert(dp,mode,yearData);                
+            }
+            
+            var cp = cPop(yearData);
+            
+            if (cp[cp.length-1]>maxPop)
+            {
+                maxPop = cp[cp.length-1];
+            }
+            
+            var origDataOrder = new Array(yearData.length)
+            for(var l = 0; l < countries.length; l++)
+            {
+                origDataOrder[yearData[l].rect] = yearData[l];
+                origDataOrder[yearData[l].rect].yearOrder = l;
+            }
+            dataset.data.push(origDataOrder); 
+            dataset.cPops.push(cp);
+        } 
+
+        dataset.axscale = d3.scale.linear().domain([0,maxPop]).range([0,plotw-100]);    
+        dataset.ayscale = d3.scale.linear().domain([maxperCap,0]).range([0,ploth]);
+        dataset.maxperCap = maxperCap;
+
+        return dataset;
+     }
+     
+     var initialPlot = function(dataset)
+     {
+        var plot = d3.select("body").append("svg").attr("width", plotw).attr("height", svgh);
+        plot.selectAll("rect").data(dataset.data[0]).enter().append("rect")
+                .attr("y", function(input, i){return ploth - dataset.ayscale(dataset.maxperCap - input.perCap);})
+                .attr("width", function(input){return dataset.axscale(input.population);})
+                .attr("height", function(input){return ploth - dataset.ayscale(input.perCap);})
+                .attr("fill", function(input){ return colours[input.id];})
+                .attr("stroke", function(input){ return colours[input.id];})
+                .attr("fill-opacity", 0.25)
+                .attr("stroke-width", 1)
+                .attr("x", function(input, i){ return 100 +  dataset.axscale(dataset.cPops[0][input.yearOrder]);})
+                .on("mouseover", function(input) {
+                        plot.append("text")
+					   .attr("id", "tooltip")
+					   .attr("text-anchor", "middle")
+					   .attr("font-family", "sans-serif")
+					   .attr("font-size", "11px")
+					   .attr("font-weight", "bold")
+					   .attr("fill", "black")
+					   .text(input.info);
+
+			   })
+			   .on("mouseout", function() {
+					d3.select("#tooltip").remove();					
+			   })
+                .append("title").text(function(input){return input.info;});
+                
+        var yaxis = d3.svg.axis()
+                          .scale(dataset.ayscale)
+                          .orient("left")
+                          .ticks(3);
+                          
+        var padding = 98; 
+        plot.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + padding + ",0)")
+            .call(yaxis);
+                
+         return plot;
+          
+     }
+    var plotYear = function(dataset, year, plot)
+     {
+        plotData = dataset.data[year - dataset.base];
+        
+        plot.selectAll("rect")
+            .data(plotData)
+            .transition()
+            .attr("y", function(input){ return ploth - dataset.ayscale(dataset.maxperCap - input.perCap);})
+            .attr("width", function(input){return dataset.axscale(input.population);})
+            .attr("height", function(input){return ploth - dataset.ayscale(input.perCap);})
+            .attr("fill", function(input){ return colours[input.id];})
+            .attr("fill-opacity", 0.25)
+            .attr("stroke", function(input){ return colours[input.id];})
+            .attr("stroke-width", 1)
+             .attr("x", function(input, i){ return 100 + dataset.axscale(dataset.cPops[year - dataset.base][input.yearOrder]);});
+                
+        plot.selectAll("rect").select("title").text(function(input,i){return input.info;});
+                 
+     } 
+     
+     </script>
+     
+     
+     <H1>Visualizing the History of Greenhouse Gas Emissions </H1> <br>
+     
+     I've recently come to the conclusion that I really should have a firmer grasp on the science of climate change, sustainable energy and related topics. I mean, I have a decent enough 
+     idea but I should probably know more. So, I've been reading <a href = "http://www.withouthotair.com/">this excellent book</a> by David MacKay - which I recommend strongly - and trying to be
+     more rigorous about learning what the situation is.<p>
+     
+     Very early in the book, there are a couple plots showing the respective pollution rates and historical emissions levels of different countries. Being a part of a traditional book
+     put somewhat of a constraint - I feel - on the reader's ability to really appreciate trends in emission levels: each of the plots was a snapshot of a single instance in time or an aggregation 
+     of a large amount of historical data.<p>
+     
+     It occurred to me that I could get the data for myself and then make something new that would perhaps make it easier to appreciate the situation. I got historical emissions data
+     from <a href = "http://cait2.wri.org/">CAIT</a> and the following is a preliminary set of visualizations.<p>
+         
+
+    <h2>Top Countries by Total Greenhouse Gas Emissions</h2>
+    
+   The natural place to start seemed to be just looking at emissions levels for all greenhouse gases combined. 
+   
+   Each rectangle represents a country. For each rectangle, its width is proportional to the country's population and its height is proportional to the average pollution per person in that country. 
+   So the area of the rectangle represents the total emissions level for that country.<p>
+   The plots on this page will generally order the countries from left to right in descending order of total emissions.
+   So when rectangles switch places it means that one overtook the other in emissions levels at that point in time. You can hover over the rectangles for country information.
+   The colours of the rectangles don't mean anything in particular: I just gave different countries different colours and stuck with the assignments throughout.<p>
+   
+   OK, so here's are the 30 countries that had the highest total pollution levels in 2011 - the last year in the CAIT dataset: China, USA, India, Russia, Indonesia, Brazil, Japan, Canada, Germany, Mexico, 
+   Iran, South Korea, Australia, United Kingdom, Saudi Arabia, Nigeria, France, Italy, South Africa, Malaysia, Argentina, Venezuela, Turkey, Ukraine, Thailand, Spain, Pakistan, Poland, Dem. Rep. of Congo, and Kazakhstan.<p>
+   
+   <script type = "text/javascript">
+
+        
+    var Totaldata = setUpAnimation(Total30,TotalGHG, totalbase, totalend, "e", 0);
+        var totalplot = initialPlot(Totaldata);
+        
+        var tlabel = totalplot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(totalbase);
+                        
+        var tbox = tlabel.node().getBBox();
+              
+        var tyear = Totaldata.base + 1;
+         
+         var animtotal = function()
+         {
+            if (tyear==totalend)
+                tyear = Totaldata.base;
+            plotYear(Totaldata, tyear, totalplot);
+            tlabel.text(tyear);
+            tyear+=1;
+            
+         }
+          
+         setInterval(animtotal, animTime); 
+    </script><p>
+    
+So, it's more or less relatively affluent and very large countries. To be expected I suppose.<br>
+(If you noticed that Malaysia isn't always there, I apologize. I have to check something out in the data and clean that up.)
+   
+
+<h2>Top Countries by Greenhouse Gas Emissions per Capita</h2><br>
+
+    OK, so there's a lot of disparity in average pollution per citizen for the countries that are the largest overall polluters. So which countries have the highest emissions levels per capita?<p>
+    Well, here are the top 10 polluters per capita: Kuwait, Brunei, Belize, Qatar, Equatorial Guinea, Oman, Trinidad & Tobago, Australia, Canada, and UnitedArabEmirates.<p> 
+    So the list is dominated by smaller countries with strong energy industries.<p>
+   (I don't mean for that to be too judgmental when I use the word "polluters" to refer to these countries as a lot of these emissions are in service of things other countries are very happy to benefit
+    from.)<p>
+    
+    <script type = "text/javascript">
+        
+        var Totalh10data = setUpAnimation(totalhigh10,TotalGHG, totalbase, totalend, "e", 1);
+        var totalh10plot = initialPlot(Totalh10data);
+        
+         var t10label = totalh10plot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(totalbase);
+                        
+        var t10box = t10label.node().getBBox();
+         
+        var t10year = Totalh10data.base + 1;
+         
+         var animtotal10 = function()
+         {
+            if (t10year==totalend)
+                t10year = Totalh10data.base;
+            plotYear(Totalh10data, t10year, totalh10plot);
+            t10label.text(t10year);
+            t10year+=1;
+         }
+          
+         setInterval(animtotal10, animTime);
+          
+    </script><p>
+    
+    
+    You probably noticed that the countries in this plot are ordered by per capita emissions. That seemed to be the natural ranking here. Later plots will maintain that convention when looking at
+the countries that lead in per capita metrics.    
+    
+    
+    <hr> 
+   <h2>Carbon Dioxide</h2> 
+
+   OK, so now we can look at emissions of a few specific gases. <a href = "http://en.wikipedia.org/wiki/Carbon_dioxide">Carbon Dioxide (CO<sub>2</sub>)</a> seems to be the definitive greenhouse gas so 
+   it seems like the best place to start.<p> 
+   
+   I was taught that Carbon Dioxide made of 0.03% of the atmosphere. CO<sub>2</sub> is up to 
+    <a href = "http://www.usatoday.com/story/weather/2014/05/01/carbon-dioxide-400-ppm-april-mauna-loa/8575651/">0.04% these days.</a><p>
+   
+   CAIT actually provides three decades more historical data for CO<sub>2</sub> emissions. So this plot can perhaps serve as a better demonstration of how the situation has evolved from the mid-20th 
+   century to the present day. It does come with the caveat that the data only provides CO<sub>2</sub> emissions excluding Land-Use, Change and Forestry however.<p>
+   
+    <h3>Top Countries by Total Carbon Dioxide Emissions</h3><br> 
+   Here are the top 30 countries in total CO<sub>2</sub> emissions as of 2011: China, USA, India, Russia, Japan, Germany, South Korea, Iran, Canada, Saudi Arabia, Mexico, United Kingdom, Indonesia, Brazil, Italy, Australia,
+   South Africa, France, Turkey, Poland, Ukraine, Spain, Thailand, Kazakhstan, Egypt, Malaysia, Argentina, Venezuela, United Arab Emirates, and the Netherlands. The graph below shows their evolution since 1960.<p>
+   
+   
+         <script type = "text/javascript">
+         
+         var CO2data = setUpAnimation(CO230,TotalCO2,CO2base,CO2end,"", 0);
+
+         var CO2plot = initialPlot(CO2data);
+         
+         var clabel = CO2plot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(CO2base);
+                        
+        var cbox = clabel.node().getBBox();
+         
+         
+         var cyear = CO2data.base + 1;
+         
+         var animCO2 = function()
+         {
+            if (cyear==CO2end)
+                cyear = CO2data.base;
+            plotYear(CO2data, cyear, CO2plot);
+            clabel.text(cyear);
+            cyear+=1;
+         }
+         
+           
+         setInterval(animCO2, animTime);
+
+     
+    </script><p>
+    
+   <h3>Top Countries by Carbon Dioxide Emissions per Capita</h3><br> 
+   
+   And the top 10 countries by CO<sub>2</sub> emissions per capita are: Qatar, Trinidad & Tobago, Kuwait, Brunei, Oman, Luxembourg, United Arab Emirates, Australia, Bahrain, and Saudi Arabia. <p>
+   
+    <script type = "text/javascript">
+         
+         
+         var CO2h10data = setUpAnimation(CO2high10,TotalCO2,CO2base,CO2end,"", 1);
+
+         var CO2h10plot = initialPlot(CO2h10data);
+         
+         
+        var c10label = CO2h10plot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(CO2base);
+                        
+        var c10box = c10label.node().getBBox();    
+         
+         
+         var c10year = CO2h10data.base + 1;
+         
+         var anim10CO2 = function()
+         {
+            if (c10year==CO2end)
+                c10year = CO2h10data.base;
+            plotYear(CO2h10data, c10year, CO2h10plot);
+            c10label.text(c10year);
+            c10year+=1;
+         }
+         
+           
+         setInterval(anim10CO2, animTime);
+
+     
+    </script><p>
+    
+    Maybe you noticed that Oman doesn't show up till 1964. That's in the underlying dataset.
+    
+    
+    <hr>
+    
+    <h2>Methane</h2>
+
+    The next gas on deck is <a href = "http://en.wikipedia.org/wiki/Methane">Methane (CH<sub>4</sub>)</a>, the main component of natural gas. Other industries that are responsible for emitting
+    large amounts of methane into the atmosphere are agriculture, animal husbandry and waste/landfills.<p> 
+    
+    Everything I've read seems to indicate that methane has a much more pronounced effect in the short term before trailing off whereas CO<sub>2</sub> has a persistent low-level effect over long
+    periods of time.<p>
+    
+    
+    
+    
+    <h3>Top Countries by Total Methane Emissions</h3><br>
+    
+    As far as methane goes, the top 30 countries are: China, USA, Russia, India, Brazil, Indonesia, Nigeria, Mexico, Angola, Australia, Canada, Pakistan, Iraq, Kuwait, Uzbekistan, Argentina, 
+    Sudan, Iran, Myanmar, Vietnam, Libya, Thailand, Ukraine, Ethiopia, Malaysia, France, Venezuela, Dem. Rep. of Congo, Colombia, and Turkey.<p>
+    
+    <script type = "text/javascript">
+   
+        var CH4data = setUpAnimation(CH430,TotalCH4, CH4base, CH4end, "e", 0);
+        var ch4plot = initialPlot(CH4data);
+        
+        
+         var ch4label = ch4plot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(CH4base);
+                        
+        var ch4box = ch4label.node().getBBox();   
+         
+        var chyear = CH4data.base + 1;
+         
+         var animch4 = function()
+         {
+            if (chyear==CH4end)
+                chyear = CH4data.base;
+            plotYear(CH4data, chyear, ch4plot);
+            ch4label.text(chyear);
+            chyear+=1;
+         }
+           
+         setInterval(animch4, animTime); 
+          
+    </script><p>
+    
+    Kuwait and Libya had much higher levels than all the other countries in that last plot, so I'll take them out to perhaps better see the other 28 countries.
+
+    <h4>Removing two outliers(Kuwait and Libya) from the previous plot</h4><br>
+
+        <script type = "text/javascript">
+  
+        var CH4xodata = setUpAnimation(CH430xo,TotalCH4, CH4base, CH4end, "e", 0);
+        var ch4xoplot = initialPlot(CH4xodata);
+        
+                 var ch4xolabel = ch4xoplot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(CH4base);
+                        
+        var ch4xobox = ch4xolabel.node().getBBox();  
+         
+        var chxoyear = CH4xodata.base + 1;
+         
+         var animch4xo = function()
+         {
+            if (chxoyear==CH4end)
+                chxoyear = CH4xodata.base;
+            plotYear(CH4xodata, chxoyear, ch4xoplot);
+            ch4xolabel.text(chxoyear);
+            chxoyear+=1;
+         }
+           
+         setInterval(animch4xo, animTime); 
+          
+    </script><p>
+    
+    Here we can see that China had surpassed the United States in methane emissions for at least a decade and a half prior to doing so for CO<sub>2</sub> (and total) emissions.
+    
+   
+    <h3>Top Countries by Methane Emissions per Capita</h3><br> 
+    As far as CH<sub>4</sub> goes, the top 10 polluters per capita are: Kuwait, Brunei, Belize, Equatorial Guinea, Grenada, Libya, Oman, Turkmenistan, Barbados, and Central African Republic.<p>
+    <script type = "text/javascript">
+   
+        var CH4high10data = setUpAnimation(CH4high10,TotalCH4, CH4base, CH4end, "e", 1);
+        var ch4plot10 = initialPlot(CH4high10data);
+        
+         var ch410label = ch4plot10.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(CH4base);
+                        
+        var ch410box = ch410label.node().getBBox(); 
+        
+         
+        var ch10year = CH4high10data.base + 1;
+         
+         var anim10ch4 = function()
+         {
+            if (ch10year==CH4end)
+                ch10year = CH4high10data.base;
+            plotYear(CH4high10data, ch10year, ch4plot10);
+            ch410label.text(ch10year);
+            
+            ch10year+=1;
+         }
+           
+         setInterval(anim10ch4, animTime); 
+          
+    </script><p>
+    
+    <hr>
+    
+    <h2>Nitrous Oxide</h2><br>
+    
+    Up next, <a href = "http://en.wikipedia.org/wiki/Nitrous_oxide">Nitrous Oxide (N<sub>2</sub>O)</a>, commonly known as laughing gas.<p>
+
+    From wikipedia: 
+    <i>Nitrous oxide gives rise to NO (nitric oxide) on reaction with oxygen atoms, and this NO in turn reacts with ozone. As a result, it is the main naturally occurring regulator of stratospheric ozone. It is also a major greenhouse gas and air pollutant. 
+    Considered over a 100-year period, it has 298 times more impact per unit mass (global warming potential) than carbon dioxide.</i><p>
+    
+    Nitrous Oxide is emitted by bacteria and many activities associated with Agriculture catalyze these emissions.
+
+    <h3>Top Countries by Total Nitrous Oxide Emissions</h3><br>  
+
+    The 30 leading overall emitters of N<sub>2</sub>O are: China, USA, Brazil, Indonesia, Russian, Dem. Rep. of Congo, India, Argentina, France, Cameroon, Angola, Myanmar, Central African Republic, Germany, Sudan, Canada,
+     Pakistan, Ethiopia, Zambia, Iran, Colombia, United Kingdom, Burundi, Madagascar, Australia, Nigeria, Italy, Ukraine, Spain, and Tanzania. A lot of African countries in this list now.<p>
+    
+     <script type = "text/javascript">
+     
+
+      var N2Odata = setUpAnimation(N2030, TotalN2O, N2Obase, N2Oend, "e", 0);
+       var nplot = initialPlot(N2Odata);
+       
+      var nlabel = nplot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(N2Obase);
+                        
+        var nbox = nlabel.node().getBBox(); 
+         
+        var nyear = N2Odata.base + 1;
+         
+        var animn2o = function()
+        {
+            if (nyear==N2Oend)
+            {
+                nyear = N2Odata.base;
+            }
+            plotYear(N2Odata, nyear, nplot);
+            nlabel.text(nyear);
+            nyear+=1;
+         }
+        
+           
+         setInterval(animn2o, animTime); 
+                                        
+    
+    </script><p>
+    
+    Central African Republic is on a whole other level. I'll take it out for clarity.
+    
+    <h4>Removing an outlier(Central African Republic) from the previous plot</h4><br> 
+    <script type = "text/javascript">
+ 
+     var N2Oxodata = setUpAnimation(N2030xo, TotalN2O, N2Obase, N2Oend, "e", 0);
+       var nxoplot = initialPlot(N2Oxodata);
+       
+             var nxolabel = nxoplot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(N2Obase);
+                        
+        var nxobox = nxolabel.node().getBBox(); 
+         
+        var nxoyear = N2Oxodata.base + 1;
+         
+        var animn2oxo = function()
+        {
+            if (nxoyear==N2Oend)
+            {
+                nxoyear = N2Oxodata.base;
+            }
+            plotYear(N2Oxodata, nxoyear, nxoplot);
+            nxolabel.text(nxoyear);
+            nxoyear+=1;
+         }
+        
+           
+         setInterval(animn2oxo, animTime); 
+                                        
+    
+    </script><p>
+
+<h3>Top countries by Emissions of Nitrous Oxide per Capita</h3>
+    
+    And here are the top 10 polluters per capita in the Nitrous Oxide Division: Central African Republic, Burundi, Angola, Cameroon, Zambia, Brunei, NewZealand, Uruguay, Mongolia, and Bolivia.<p>
+         <script type = "text/javascript">
+
+        var N2Ohigh10data = setUpAnimation(N2Ohigh10, TotalN2O, N2Obase, N2Oend, "e", 1);
+        var n10plot = initialPlot(N2Ohigh10data);
+        
+       var n10label = n10plot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(N2Obase);
+                        
+        var n10box = n10label.node().getBBox(); 
+         
+        var n10year = N2Odata.base + 1;
+         
+        var anim10n2o = function()
+        {
+            if (n10year==N2Oend)
+            {
+                n10year = N2Ohigh10data.base;
+            }
+            plotYear(N2Ohigh10data, n10year, n10plot);
+            n10label.text(n10year);
+            n10year+=1;
+         }
+        
+           
+         setInterval(anim10n2o, animTime); 
+                                        
+    
+    </script><br>
+    
+    The top 5 countries in 2011 are all in Africa. Central African Republic is noticeably higher than all the other countries but its own trend has been downward since 1990 and more or less flat 
+    in the last decade and a half. 
+    
+<hr>
+   
+<h2>Fluorinated Gases</h2> 
+
+And finally, the last set of greenhouse gases, that was in the CAIT dataset: Fluorinated Gases aka F-gases.<p>
+
+Here's what the European Commission has to say about F-gases: <i> Fluorinated gases (‘F-gases’) are a family of man-made gases used in a range of industrial applications. 
+Because they do not damage the atmospheric ozone layer, they are often used as substitutes for ozone-depleting substances. However, F-gases are powerful greenhouse gases, 
+with a global warming effect up to 23 000 times greater than carbon dioxide (CO2), and their emissions are rising strongly. </i><p>
+
+Sounds like something to keep an eye on.<p>
+
+As a reminder: all these plots are in CO<sub>2</sub> equivalent terms so don't go multiplying these heights by that 23,000 number in that above quote. It's already baked in.<p>
+
+<h3>Top Countries by Total Emissions of Fluorinated Gases</h3>
+
+And here's what the overall top 30 looks like: USA, China, Japan, India, Russia, South Korea, Mexico, Germany, Canada, France, Italy, South Africa, United Kingdom, Australia, Brazil, Israel, 
+Venezuela, Spain, Malaysia, Thailand, Saudi Arabia, Philippines, Argentina, Algeria, Poland, Netherlands, Iran, Egypt, Singapore, and Turkey. The usual suspects more or less.<p>
+
+    
+    <script type = "text/javascript">
+
+       
+        var FGasdata = setUpAnimation(FGas30, TotalFGas,FGasbase, FGasend,"e", 0);
+        var fgasplot = initialPlot(FGasdata);
+        
+       var flabel = fgasplot.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(FGasbase);
+                        
+        var fbox = flabel.node().getBBox(); 
+         
+        var fyear = FGasdata.base + 1;
+         
+        var animfgas = function()
+        {
+            if (fyear==FGasend)
+            {
+                fyear = FGasdata.base;
+            }
+            plotYear(FGasdata, fyear, fgasplot);
+            flabel.text(fyear);
+            fyear+=1;
+         }
+        
+           
+         setInterval(animfgas, animTime); 
+     
+    </script><br>
+    
+<h3>Top Countries by Emissions of Fluorinated Gases per Capita</h3>
+    
+    And the top 10 F-gassing countries per Capita are: Antigua & Barbuda, Israel, Montenegro, Kuwait, Malta, USA, South Korea, Singapore, Australia, and Japan. <p>
+    
+        <script type = "text/javascript">
+
+        var FGashigh10data = setUpAnimation(FGashigh10, TotalFGas,FGasbase, FGasend,"e", 1);
+        var fgasplot10 = initialPlot(FGashigh10data);
+        
+           var f10label = fgasplot10.append("text")
+                        .attr("class", "year label")
+                        .attr("text-anchor", "end")
+                        .attr("y", ploth/2)
+                        .attr("x", plotw/2)
+                        .text(FGasbase);
+                        
+        var f10box = f10label.node().getBBox(); 
+         
+        var f10year = FGashigh10data.base + 1;
+         
+        var anim10fgas = function()
+        {
+            if (f10year==FGasend)
+            {
+                f10year = FGasdata.base;
+            }
+            plotYear(FGashigh10data, f10year, fgasplot10);
+            f10label.text(f10year);
+            f10year+=1;
+         }
+        
+           
+         setInterval(anim10fgas, animTime); 
+     
+    </script><p>
+    
+    Keep an eye on extremely-narrow Antigua & Barbuda sliding up the y-axis and distorting the scale for everyone else. I wonder what's the deal with that.<p>
+    
+
+<hr>
+Anyhow, that's a preliminary look at the CAIT data. Maybe there's more to come. Feel free to provide feedback to darynr at gmail.
+    
+    
+    
+    
+    
+</body>
+</html>
