@@ -1,0 +1,636 @@
+
+<html>
+<title>BFS vs DFS arena</title>
+<link href='http://fonts.googleapis.com/css?family=Arvo' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="thecssfile.css">
+
+<body>
+<H2>Visualizing breadth-first vs depth-first search</H2>
+
+Following up on <a href="theseus.htm">this</a>, I might as well go ahead and make a visualization of <a href ="https://en.wikipedia.org/wiki/Breadth-first_search">Breadth-first search</a>. Or even
+better I could visualize DFS and BFS simultaneously.<br>
+So here it is (start and end points in black): 
+<br><br>
+Maze Dimension: <input type="text" id="gridDim" value ="50">  &nbsp
+<button type="button" onclick = refreshSearches()>New Search</button> &nbsp  
+
+
+DFS: <input type="text" id="TheseusResults" value ="">&nbsp&nbsp BFS: <input type="text" id="OdysseusResults" value =""><br><br>
+<svg id = "Maze"></svg><br>
+<font color = "#0000FF">On DFS path</font> &nbsp <font color = "#FF0000">On BFS path</font> &nbsp <font color = "#9400D3">On both paths </font><br>
+<font color = "#BAAFFF">Visited by DFS</font> &nbsp <font color = "#FAAFBA">Visited by BFS</font> &nbsp <font color = "#A0A0A0">Visited by both </font><br>
+Large mazes may kill your browser.
+
+
+
+
+<script>
+
+var mazeDim;
+if(window.innerHeight < window.innerWidth){
+    mazeDim = 0.75*window.innerHeight;
+}
+else{
+    mazeDim = 0.75*window.innerWidth;
+}
+
+var maze = document.getElementById('Maze');
+maze.setAttribute("width",mazeDim);
+maze.setAttribute("height",mazeDim);
+
+var dfsVisited =[];
+var bfsInQueue = [];
+var dfsInPath = [];
+var bfsInPath = [];
+var bfsParent = [];
+var thresh = 0.666;
+var dfsFlag = false, bfsFlag = false;
+
+var dfsPath = [];
+var bfsQueue = [];
+var bfsPhase = 0;
+var bfsNeighbours = [];
+var bfsNeighbourIndex;
+
+var gridSize;
+var edges = [];
+var lines = [];
+var edgeAvailable = [];
+
+var intervalFlag;
+var source, dest, bfsIndex;
+var cellSize;
+var iter;
+
+
+var Edge = function(v1,v2){
+    this.vertex1 = v1;
+    this.vertex2 = v2;
+}
+
+
+var clearMaze = function(){
+
+    for(var j = 0; j < edges.length; ++j){
+        if(!edgeAvailable[j]){
+            edgeAvailable[j] = true;
+            unboldLine(lines[j]);
+        }
+    }
+
+}
+
+
+var newBlock = function(x)
+{
+    var NS = "http://www.w3.org/2000/svg";
+    var block = document.createElementNS(NS, "rect");
+    block.setAttribute("width",x);
+    block.setAttribute("height",x);
+    block.style.fill = "#FFEBCD";
+    block.style.opacity = 0.8;
+    return block;    
+}
+
+
+
+
+var colourBlock = function(block, colour)
+{
+    block.style.fill = colour;
+}
+
+var Line = function(x1, y1, x2, y2){    
+    var NS = "http://www.w3.org/2000/svg";
+    var line = document.createElementNS(NS, 'line');
+    line.setAttribute("x1", x1);
+    line.setAttribute("y1", y1);
+    line.setAttribute("x2", x2);
+    line.setAttribute("y2", y2);
+    return line;
+}
+
+var boldLine = function(e){
+    e.setAttribute("width",1);
+    e.style.stroke = "#A52A2A";
+}
+var unboldLine = function(e){
+    e.setAttribute("width",0);
+    e.style.stroke = "#FFEBCD";
+}
+
+var mazeLookup = [];
+var barsLookup = [];
+
+var cleanupOld = function(){
+
+    for(var k = 0; k < mazeLookup.length; ++k){
+        maze.removeChild(mazeLookup[k]);
+    }
+    for(var k = 0; k < edges.length; ++k){
+        maze.removeChild(lines[k]);
+    }
+}
+
+
+var makeBase = function(){
+
+    mazeLookup = [];
+  
+    for(var j = 0; j < gridSize; ++j){
+        for(var k = 0; k < gridSize; ++k){
+            var block = newBlock(cellSize);
+            block.setAttribute("x",k*cellSize);
+            block.setAttribute("y",j*cellSize);
+            mazeLookup.push(block);
+            maze.appendChild(mazeLookup[mazeLookup.length-1]);				
+        }    
+    }
+}
+
+var refreshBase = function(){
+    for(var j = 0; j < mazeLookup.length; ++j)
+    {
+        colourBlock(mazeLookup[j], "#FFEBCD");
+    }
+}
+
+
+
+
+
+var makeEdges = function(){
+    
+    edges = [];
+    lines = [];
+
+    for(var j =0; j < gridSize-1; ++j){
+        for(var k = 0; k < gridSize -1; ++k){
+            v1 = j*gridSize + k;
+            v2 = v1 + 1;
+            var temp = new Edge(v1, v2);
+
+            edges.push(temp);
+            var tempLine = new Line((k+1)*cellSize, j*cellSize,(k+1)*cellSize, (j+1)*cellSize );
+            lines.push(tempLine);
+            maze.appendChild(lines[lines.length-1]);
+            
+            v2 = v1 + gridSize;
+            var temp = new Edge(v1,v2);
+            edges.push(temp);
+            var tempLine = new Line(k*cellSize, (j+1)*cellSize,(k+1)*cellSize, (j+1)*cellSize );
+            lines.push(tempLine);
+            maze.appendChild(lines[lines.length-1]);
+        }
+    }
+
+    for(var j = 1; j < gridSize; ++j){
+        v1 = (j*gridSize) -1;
+        v2 = v1 + gridSize;
+        var temp = new Edge(v1, v2);
+        edges.push(temp);
+        var tempLine = new Line((gridSize-1)*cellSize, j*cellSize,gridSize*cellSize, j*cellSize );
+        lines.push(tempLine);
+        maze.appendChild(lines[lines.length-1]);
+       
+    } 
+
+    for(var j = 0; j < gridSize-1; ++j){
+        v1 = gridSize*(gridSize-1)+j;
+        v2 = v1+1;
+        var temp = new Edge(v1, v2);
+        edges.push(temp);
+        var tempLine = new Line((j+1)*cellSize, (gridSize-1)*cellSize, (j+1)*cellSize, gridSize*cellSize );
+        lines.push(tempLine);
+        maze.appendChild(lines[lines.length-1]);       
+    }
+
+}
+
+var setSource = function(cell){
+    source = cell;
+    dfsPath = [];
+    bfsQueue = [];
+    bfsParent = [];
+    colourBlock(mazeLookup[cell], "#000000");
+    dfsPathPush(cell);
+    bfsQueue.push(cell);
+    bfsInQueue[cell] = true;
+    bfsParent.push(0);
+    source = cell;    
+}
+
+
+var setDestination = function(cell){
+    dest = cell;
+    colourBlock(mazeLookup[cell], "#000000");
+}
+
+
+
+var makeMaze = function(threshold){
+    var edgeCheck;
+    edgeAvailable = [];
+    for(var j = 0; j < edges.length; ++j){
+        edgeCheck = Math.random();
+        if(edgeCheck<threshold){
+            edgeAvailable.push(true);            
+        }
+        else{
+            edgeAvailable.push(false);
+            boldLine(lines[j]);
+        }
+    
+    
+    }
+    
+    
+    dfsPath = [];
+    bfsQueue = [];
+    bfsInQueue = [];
+    bfsPhase = 0;
+    bfsParent = [];
+    setSource(Math.floor(Math.random()*gridSize*gridSize));
+    setDestination(Math.floor(Math.random()*gridSize*gridSize));
+    
+    dfsInPath = [];
+    bfsInPath = [];
+    bfsInQueue = [];
+    dfsVisited = [];
+    
+    
+    for(var j = 0; j < mazeLookup.length; ++j){
+        dfsInPath.push(false);
+        bfsInPath.push(false);
+        bfsInQueue.push(false);
+        dfsVisited.push(false);
+    }
+    
+    
+}
+
+
+var getEdgeNum = function(v1, v2){
+    
+    if (v2<v1){
+        var temp = v1;
+        v1 = v2;
+        v2 = temp;
+    }
+    var rval = -1;
+    var row = Math.floor(v1/gridSize);
+    var col = v1%gridSize
+    if((col < gridSize - 1) && (row < gridSize-1)){
+        if(v2 == v1+1){
+            rval = row*(gridSize-1)*2 + col*2;
+        }
+        else if (v2 == v1+gridSize){
+            rval = row*(gridSize-1)*2 + col*2 + 1;
+        }
+    }
+    else if(col == gridSize-1){
+        if(v2 == v1 + gridSize){
+            rval = (gridSize-1)*(gridSize-1)*2 + row;
+        }
+    }
+    else if(row == gridSize-1){
+        if(v2 == v1+1){
+            rval = (gridSize-1)*(gridSize-1)*2 + (gridSize-1) + col;
+        }
+    }
+    
+    return rval;
+
+}
+
+
+
+
+
+
+var shuffle = function(array) {
+  //Fisher-Yates. Code from http://bost.ocks.org/mike/shuffle/
+  var m = array.length, t, i;
+
+  // While there remain elements to shuffleâ€¦
+  while (m) {
+
+    // Pick a remaining elementâ€¦
+    i = Math.floor(Math.random() * m--);
+
+    // And swap it with the current element.
+    t = array[m];
+    array[m] = array[i];
+    array[i] = t;
+  }
+
+  return array;
+}
+
+
+
+var neighbours = function(v){
+
+    var neighbours = [];
+    var edgeNum;
+    if (v>=gridSize){
+        if(edgeAvailable[getEdgeNum(v,v-gridSize)]){
+            neighbours.push(v-gridSize);
+        }
+    }
+    if(v < gridSize*(gridSize-1)){
+        if(edgeAvailable[getEdgeNum(v,v+gridSize)]){
+            neighbours.push(v + gridSize);
+        }
+    }
+    if(v%gridSize > 0){
+        if(edgeAvailable[getEdgeNum(v,v-1)]){
+            neighbours.push(v-1);
+        }
+    }        
+    if(v%gridSize < gridSize -1){
+        if(edgeAvailable[getEdgeNum(v,v+1)]){
+            neighbours.push(v + 1);
+        }
+    }
+
+    return neighbours;
+}
+
+var dfsPathPush = function(v){
+    dfsPath.push(v);
+    dfsInPath[v] = true;
+    if(v!=dest && v!=source){
+        if(bfsInPath[v]){
+            colourBlock(mazeLookup[v], "#9400D3"); //in both paths
+        }
+        else{
+            colourBlock(mazeLookup[v], "#0000FF"); //only in this Path
+        }
+    }
+}
+
+var dfsPathPop = function(){
+    
+    var temp;
+    
+    temp = dfsPath[dfsPath.length-1];
+    if(dfsPath.length>1){
+        if(bfsInPath[temp]){
+            colourBlock(mazeLookup[temp], "#FF0000");//still in the other path
+        }
+        else if (bfsInQueue[temp])
+        {
+            colourBlock(mazeLookup[temp], "#A0A0A0"); //visited by both already
+        }
+        else{
+            colourBlock(mazeLookup[temp], "#BAAFFF"); //only visited by this path
+        }
+    }        
+    dfsPath.pop();
+    dfsInPath[temp] = false;
+}
+
+var DFS = function(){
+
+    if(dfsPath.length==0){
+        if(dfsFlag==false){
+            dfsFlag = true;
+            document.getElementById('TheseusResults').value = "No path (Iteration: "+iter+")";
+        }
+    }
+    else if(!dfsVisited[dfsPath[dfsPath.length-1]]){
+        if(dfsPath[dfsPath.length-1]==dest){
+            if(dfsFlag==false){
+                dfsFlag = true;
+                    var vcount = 0;
+                    for(var j = 0; j < gridSize*gridSize; ++j){
+                        if(dfsVisited[j]){
+                            ++vcount;
+                        }
+                    }
+                    document.getElementById('TheseusResults').value = "Length: "+dfsPath.length+" (Iteration: "+ iter+", Sites visited: "+vcount+")";
+                }
+            }
+            dfsVisited[dfsPath[dfsPath.length-1]] = true;
+    }
+    else{
+        var possibles = neighbours(dfsPath[dfsPath.length-1]);
+        shuffle(possibles);
+        for(var j = 0; j < possibles.length; ++j){
+            if((possibles[j]!=source) && (!dfsVisited[possibles[j]])){
+                dfsPathPush(possibles[j]);
+                return;
+            }
+        }
+        dfsPathPop();
+    }
+}
+
+
+var bfsUnprintCell = function(cell){
+    
+    if(cell!=source){
+        if(dfsInPath[cell]){
+            colourBlock(mazeLookup[cell], "#0000FF");//still in the other path    
+        }
+        else if (dfsVisited[cell])
+        {
+            colourBlock(mazeLookup[cell], "#A0A0A0"); //visited by both already
+        }
+        else{
+            colourBlock(mazeLookup[cell], "#FAAFBA"); //only visited by this path
+        }
+        bfsInPath[cell] = false;
+    }
+}
+
+var bfsUnprint = function(){
+
+    var temp;
+    var index = bfsQueue.length-1;;
+    while(index>0){
+        temp = bfsQueue[index];
+        bfsUnprintCell(temp);
+        index = bfsParent[index];
+       
+    }
+}
+
+var bfsPrint = function(){
+    
+    var temp;
+    var index = bfsQueue.length-1;
+
+    while(index > 0)
+    {
+        temp = bfsQueue[index];
+        if(temp!=dest && temp != source){
+            if(dfsInPath[temp]){
+                    colourBlock(mazeLookup[temp], "#9400D3"); //in both paths
+            }
+            else{
+                colourBlock(mazeLookup[temp], "#FF0000"); //only in this Path
+
+            }
+        }
+    
+
+        index = bfsParent[index];
+        bfsInPath[temp] = true;
+    }
+}
+
+var bfsPathLength = function(index){
+    var count = 1;
+    while(index>0){
+        console.log(index);
+        index = bfsParent[index];
+        ++count;    
+    }
+    return count;
+
+}
+
+var bfsPathEnqueue = function(){
+
+    if (bfsPhase == 0){
+        bfsUnprint();
+        bfsNeighbours = neighbours(bfsQueue[bfsIndex]);
+        shuffle(bfsNeighbours);
+        bfsNeighbourIndex = 0;
+        bfsPhase = 1;
+    }
+    if (bfsPhase == 1){
+        var goodNeighbour = false;
+        while(bfsNeighbourIndex < bfsNeighbours.length){
+            if(bfsInQueue[bfsNeighbours[bfsNeighbourIndex]]){
+                ++bfsNeighbourIndex;
+            }
+            else{
+                goodNeighbour = true;
+                break;
+            }
+        }
+        if(bfsNeighbourIndex == bfsNeighbours.length){
+            bfsPhase = 0;
+            for(var k = 0; k < bfsNeighbours.length; ++k){
+                if(bfsNeighbours[k]!=source){
+                    bfsUnprintCell(bfsNeighbours[k]);
+                }
+            }
+        }
+        else if(goodNeighbour){
+            if(bfsNeighbours[bfsNeighbourIndex]==dest){
+                bfsFlag=true;
+                document.getElementById('OdysseusResults').value = "Length: "+(bfsPathLength(bfsIndex)+1)+" (Iteration: "+ iter+", Sites visited: "+bfsQueue.length+")";
+                for(var k = 0; k < bfsNeighbourIndex; ++k){
+                    if(bfsNeighbours[k]!=source){
+                        bfsUnprintCell(bfsNeighbours[k]);
+                    }
+                }
+            }
+
+            bfsQueue.push(bfsNeighbours[bfsNeighbourIndex]);
+            bfsParent.push(bfsIndex);
+            bfsInQueue[bfsNeighbours[bfsNeighbourIndex]]=true;             
+            bfsPrint();
+        }    
+    }
+}
+
+
+
+var BFS = function(){
+    if(bfsIndex >= bfsQueue.length){
+        bfsFlag = true;
+        document.getElementById('OdysseusResults').value = "No path (Iteration: "+iter+")";
+    }    
+    else if (bfsQueue[bfsIndex]==dest)
+    {
+        bfsFlag = true;
+        
+
+    }
+    else{
+        bfsPathEnqueue();
+    }
+    if(bfsPhase == 0)
+    {
+        ++bfsIndex;
+    }    
+}
+
+var search = function(){
+
+    if(dfsFlag&&bfsFlag){
+        clearInterval(intervalFlag);
+        //console.log(dfsFlag,bfsFlag);
+        console.log("Voila!");
+    }
+    else{
+        if(!dfsFlag){
+            DFS();
+        }
+        if(!bfsFlag){
+            BFS();
+        }
+    }
+    ++iter;
+}
+
+var clearChecks = function(){
+
+    for(var j =0; j < (gridSize*gridSize); ++j){
+        dfsVisited[j] = false;
+        bfsInQueue[j] = false;
+        dfsInPath[j] = false;
+        bfsInPath[j] = false;
+    }
+
+
+}
+
+
+
+
+
+
+
+var refreshSearches = function(){
+	
+    clearInterval(intervalFlag);
+    iter = 1;
+    gridSize = parseFloat(document.getElementById('gridDim').value);
+    document.getElementById('OdysseusResults').value = "";
+    document.getElementById('TheseusResults').value = "";
+    cellSize = mazeDim/gridSize;
+    if((gridSize*gridSize) != mazeLookup.length){
+        cleanupOld();
+        makeBase();
+        makeEdges();
+    }
+    else{
+        clearMaze();
+        refreshBase();
+        //makeMaze(thresh);
+        clearChecks();
+    }
+
+    makeMaze(thresh);
+
+    dfsFlag = false;
+    bfsFlag = false;
+    bfsIndex = 0;
+    intervalFlag = setInterval(search, 10);	
+}
+
+refreshSearches();
+
+
+
+
+</script>
+</body>
+
+</html>
